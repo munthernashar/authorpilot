@@ -1,0 +1,14 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+
+COPY package.json ./package.json
+COPY apps/worker/package.json ./apps/worker/package.json
+
+RUN npm --prefix apps/worker install
+
+COPY apps/worker ./apps/worker
+WORKDIR /app/apps/worker
+
+RUN npm run build
+
+CMD ["npm", "run", "start"]
