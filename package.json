@@ -1,0 +1,17 @@
+{
+  "name": "authorpilot",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm --prefix apps/api run dev",
+    "build:api": "npm --prefix apps/api run build",
+    "dev:web": "npm --prefix apps/web run dev",
+    "build:web": "npm --prefix apps/web run build",
+    "dev:worker": "npm --prefix apps/worker run dev",
+    "build:worker": "npm --prefix apps/worker run build"
+  }
+}

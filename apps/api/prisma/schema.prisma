@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum BookStatus {
+  DRAFT
+  OUTLINE_READY
+  WRITING
+  COMPLETED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  fullName      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  memberships   OrganizationMember[]
+  refreshTokens RefreshToken[]
+  books         Book[]         @relation("BookCreator")
+  ownedOrganizations Organization[] @relation("OrganizationOwner")
+}
+
+
+model Organization {
+  id          String               @id @default(cuid())
+  name        String
+  slug        String               @unique
+  ownerUserId String
+  owner       User                 @relation("OrganizationOwner", fields: [ownerUserId], references: [id])
+  members     OrganizationMember[]
+  personas    AuthorPersona[]
+  books       Book[]
+  jobs        AiJob[]
+  resources   Resource[]
+  createdAt   DateTime             @default(now())
+}
+
+model OrganizationMember {
+  id             String         @id @default(cuid())
+  organizationId String
+  userId         String
+  role           MembershipRole @default(EDITOR)
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id])
+  createdAt      DateTime       @default(now())
+
+  @@unique([organizationId, userId])
+}
+
+model AuthorPersona {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  tone           String
+  audience       String
+  genre          String
+  constraintsJson Json?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  books          Book[]
+}
+
+model Book {
+  id              String        @id @default(cuid())
+  organizationId  String
+  personaId       String?
+  title           String
+  subtitle        String?
+  description     String?
+  language        String        @default("en")
+  status          BookStatus    @default(DRAFT)
+  targetWordCount Int?
+  createdBy       String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  persona         AuthorPersona? @relation(fields: [personaId], references: [id])
+  creator         User          @relation("BookCreator", fields: [createdBy], references: [id])
+  chapters        Chapter[]
+  resources       Resource[]
+}
+
+model Chapter {
+  id          String   @id @default(cuid())
+  bookId       String
+  title       String
+  position    Int
+  content     String?
+  targetWords Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  book        Book     @relation(fields: [bookId], references: [id])
+
+  @@unique([bookId, position])
+}
+
+model AiJob {
+  id             String    @id @default(cuid())
+  organizationId String
+  type           String
+  status         JobStatus @default(QUEUED)
+  inputJson      Json?
+  outputJson     Json?
+  progress       Int       @default(0)
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model Resource {
+  id             String   @id @default(cuid())
+  organizationId String
+  bookId         String?
+  storageKey     String
+  fileName       String
+  mimeType       String
+  sizeBytes      Int
+  category       String
+  metadataJson   Json?
+  createdAt      DateTime @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  book           Book?    @relation(fields: [bookId], references: [id])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId      String
+  tokenHash  String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
